@@ -1,0 +1,37 @@
+#!/bin/bash
+if [[ "$IP" = "" ]]; then
+domain=$(cat /root/domain)
+else
+domain=$IP
+fi
+until [[ $user =~ ^[a-zA-Z0-9_]+$ && ${CLIENT_EXISTS} == '0' ]]; do
+echo "Checking Vps"
+sleep 0.5
+clear
+                read -rp "User: " -e user
+                CLIENT_EXISTS=$(grep -w vvip-$user /usr/local/etc/trojan/config.json | wc -l)
+
+                if [[ ${CLIENT_EXISTS} == '1' ]]; then
+clear
+sleep 0.5
+                        echo ""
+                        echo "Username sudah ada, harap pakai username lain."
+                        exit 1
+                fi
+        done
+read -p "Expired (days): " masaaktif
+exp=`date -d "$masaaktif days" +"%Y-%m-%d"`
+sed -i '/"agungtrojanbatas"/a\"vvip-'""$user""'",' /usr/local/etc/trojan/config.json
+echo -e "vvip-$user $exp" >> /root/usertrojan
+systemctl restart trojan
+trojanlink="trojan-go://vvip-${user}@${domain}:443?sni=z-p15.www.instagram.com&host=${domain}&type=ws&host=${domain}&path=http://tsel.me/worryfree"
+clear
+echo -e ""
+echo -e "============ Trojan ============="
+echo -e "Username       : vvip-${user}"
+echo -e "Host/IP        : ${domain}"
+echo -e "port           : 443"
+echo -e "Expired On     : $exp"
+echo -e "================================="
+echo -e "link           : ${trojanlink}"
+echo -e ""

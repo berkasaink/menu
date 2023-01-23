@@ -1,0 +1,59 @@
+#!/bin/bash 
+if [[ "$IP" = "" ]]; then
+domain=$(cat /root/domain)
+pathvmess=$(cat /root/path-vmess)
+pathvless=$(cat /root/path-vless)
+else
+domain=$IP
+fi
+until [[ $user =~ ^[a-zA-Z0-9_]+$ && ${CLIENT_EXISTS} == '0' ]]; do
+echo "Checking Vps"
+curl https://icanhazip.com
+sleep 0.5
+		read -rp "User: " -e user
+		CLIENT_EXISTS=$(grep -w $user /usr/local/etc/xray/config.json | wc -l)
+
+		if [ ${CLIENT_EXISTS} == '1' ]; then
+			echo ""
+			echo "A client with the specified name was already created, please choose another name."
+			exit 1
+		fi
+	done
+uuid=$(cat /proc/sys/kernel/random/uuid)
+read -p "Expired (days): " masaaktif
+exp=`date -d "$masaaktif days" +"%Y-%m-%d"`
+sed -i '/#user-vmess/a\###vmess '"$user $exp"'\n{"id": "'""$uuid""'","alterId": '"0"',"email": "vmess-'""$user""'-'""$exp""'"},' /usr/local/etc/xray/config.json
+sed -i '/#user-vless/a\###vless '"$user $exp"'\n{"id": "'""$uuid""'","alterId": '"0"',"email": "vless-'""$user""'-'""$exp""'"},' /usr/local/etc/xray/config.json
+#cat>/etc/v2ray/$user.json<<EOF
+raw="{
+      \"v\":\"2\",
+      \"ps\":\"${user}\",
+      \"add\":\"${domain}\",
+      \"port\":\"443\",
+      \"id\":\"${uuid}\",
+      \"aid\":\"0\",
+      \"net\":\"ws\",
+      \"path\":\"${pathvmess}?${user}-${exp}\",
+      \"type\":\"none\",
+      \"host\":\"${domain}\",
+      \"tls\":\"tls\"
+}"
+rawvless="$uuid@$domain:443?path=${pathvless}?-${user}-${exp}&security=tls&encryption=none&host=${domain}&type=ws&sni=${domain}#${user}"
+linkvmess=`echo -n ${raw} | base64 -w 0`
+vmesslink="vmess://${linkvmess}"
+vlesslink="vless://${rawvless}"
+service xray restart
+service v2ray restart
+echo -e ""
+echo -e "==========-V2RAY/VMESS-=========="
+echo -e "Username       : ${user}"
+echo -e "id             : ${uuid}"
+echo -e "Expired        : $exp"
+echo -e "================================="
+echo -e "${vmesslink}"
+echo -e "================================="
+echo -e "${vlesslink}"
+echo -e "================================="
+echo -e " Setup by serverssh & jagoanssh  "
+echo -e "================================="
+
