@@ -1,5 +1,5 @@
 #!/bin/bash
-read -p "Masukkan Username yang ingin anda hapus: " username
+read -p "hapus user: " username
 grep -E "^$username" /root/usertrojan >/dev/null
 if [ $? -eq 0 ]; then
 # proses mengganti passwordnya
